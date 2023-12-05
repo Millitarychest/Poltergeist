@@ -16,11 +16,7 @@ using ProtoBuf;
 using Microsoft.UI.Xaml.Documents;
 using System.Threading.Tasks;
 using MimeKit.Cryptography;
-using System.Reflection.Emit;
-using Microsoft.UI.Xaml.Media;
-using Windows.Foundation;
 using MimeKit;
-using Org.BouncyCastle.Asn1.Pkcs;
 using MailKit.Net.Smtp;
 
 // To learn more about WinUI, the WinUI project structure,
