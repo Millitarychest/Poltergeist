@@ -1,0 +1,19 @@
+﻿<Window
+    x:Class="Poltergeist.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Poltergeist"
+    xmlns:models="using:Poltergeist.models"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+    mc:Ignorable="d"
+    >
+    <NavigationView PaneDisplayMode="LeftCompact" IsBackButtonVisible="Collapsed" Background="#18122B" x:Name="NavBar" SelectionChanged="NavBar_SelectionChanged">
+        <NavigationView.FooterMenuItems>
+            <NavigationViewItem Icon="Add" Content="Add New" x:Name="addNew"></NavigationViewItem>
+        </NavigationView.FooterMenuItems>
+        <Frame x:Name="frame">
+            
+        </Frame>
+    </NavigationView>
+</Window>

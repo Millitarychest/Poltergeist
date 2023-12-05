@@ -1,0 +1,148 @@
+﻿<Page
+    x:Class="Poltergeist.Pages.Inbox"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Poltergeist.Pages"
+    xmlns:models="using:Poltergeist.models"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+    mc:Ignorable="d"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+    <Grid Background="#393053" x:Name="grid" SizeChanged="Frame_SizeChanged">
+        <Grid.Resources>
+            <DataTemplate x:Key="MailPreviewTemplate" x:DataType="models:MailModel">
+                <Button Click="mailOpened" DataContext="{x:Bind}" >
+                    <StackPanel Padding="12" BorderThickness="1" Background="#393053" BorderBrush="White" Width="350" MaxHeight="100" x:Name="mailPanel">
+                        <TextBlock Text="{x:Bind Subject}" ></TextBlock>
+                        <TextBlock Text="{x:Bind From}" HorizontalAlignment="Left" FontSize="12"></TextBlock>
+                        <TextBlock Text="{x:Bind Date}" HorizontalAlignment="Right" FontSize="12"></TextBlock>
+                        <TextBlock Text="{x:Bind ShortContent}" MaxHeight="20"></TextBlock>
+                    </StackPanel>
+                </Button>
+            </DataTemplate>
+        </Grid.Resources>
+        <StackPanel Orientation="Horizontal">
+            <TextBlock x:Name="errorOut"></TextBlock>
+            <ScrollViewer Padding="12" Width="400" HorizontalAlignment="Left">
+                <ItemsRepeater
+                            ItemsSource="{x:Bind _inbox, Mode=OneWay}"
+                            ItemTemplate="{StaticResource MailPreviewTemplate}">
+                </ItemsRepeater>
+            </ScrollViewer>
+            <Frame Padding="12" >
+                <StackPanel Orientation="Vertical">
+                    <ScrollViewer HorizontalAlignment="Stretch">
+                        <StackPanel>
+                            <StackPanel Background="#092635" x:Name="HeaderBar" Width="900">
+                                <StackPanel  Orientation="Horizontal">
+                                    <TextBlock x:Name="From_label" Margin="10,10,0,0" Padding="0,0,10,0" VerticalAlignment="Center">From:</TextBlock>
+                                    <TextBox Width="800" Background="Transparent" x:Name="From_Box" IsReadOnly="True"></TextBox>
+                                </StackPanel>
+                                <Grid Margin="10,0,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" Orientation="Horizontal">
+                                        <TextBlock x:Name="To_label" Padding="0,0,10,0" VerticalAlignment="Center">
+                                            To:
+                                        </TextBlock>
+                                        <TextBox Width="400" Background="Transparent" x:Name="To_Box" IsReadOnly="True"></TextBox>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                        <TextBlock x:Name="CC_label" Padding="0,0,10,0" VerticalAlignment="Center">
+                                            CC:
+                                        </TextBlock>
+                                        <TextBox Width="400" Background="Transparent" Padding="0,0,0,5" x:Name="CC_Box" IsReadOnly="True"></TextBox>
+                                    </StackPanel>
+                                </Grid>
+                                <StackPanel  Orientation="Horizontal">
+                                    <TextBlock x:Name="Subject_label" Margin="10,10,0,10" Padding="0,0,10,0" VerticalAlignment="Center">Subject:</TextBlock>
+                                    <TextBox Width="800" Background="Transparent" x:Name="Subject_Box" IsReadOnly="True"></TextBox>
+                                </StackPanel>
+                            </StackPanel>
+                            <RichTextBlock
+                                        HorizontalAlignment="Stretch"
+                                        MinWidth="500"
+                                        TextWrapping="Wrap"
+                                        IsTextSelectionEnabled="True"
+                                        TextTrimming="CharacterEllipsis"
+                                        x:Name="MessageDisplay" >
+                            </RichTextBlock>
+                            <!--Webview for html-->
+                            <WebView2 x:Name="MessageWebDisplay" Visibility="Collapsed"/>
+                            <!--Edit View for writing mails -->
+                            <RichEditBox
+                                        Visibility="Collapsed"
+                                        HorizontalAlignment="Stretch"
+                                        MinWidth="500"
+                                        TextWrapping="Wrap"
+                                        x:Name="MessageWrite" >
+                            </RichEditBox>
+                        </StackPanel>
+                    </ScrollViewer>
+                </StackPanel>
+            </Frame>
+        </StackPanel>
+        <Button  
+            Click="writeBtn_Click"
+            Background="#818FB4" 
+            Width="50" Height="50" 
+            Name="writeBtn" 
+            Margin="0,0,30,30" 
+            HorizontalAlignment="Right" 
+            VerticalAlignment="Bottom"
+            PointerExited="writeBtn_PointerExited"
+            PointerEntered="writeBtn_PointerEntered">
+            <Button.Resources>
+                <ResourceDictionary>
+                    <ResourceDictionary.ThemeDictionaries>
+                        <ResourceDictionary x:Key="Dark">
+                            <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="Red"/>
+                            <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="Black"/>
+                        </ResourceDictionary>
+                        <ResourceDictionary x:Key="Light">
+                            <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="Red"/>
+                            <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="Black"/>
+                        </ResourceDictionary>
+                    </ResourceDictionary.ThemeDictionaries>
+                </ResourceDictionary>
+            </Button.Resources>
+            <Grid>
+                <Rectangle Height="20" Width="20" RenderTransformOrigin="0.47,0.456" x:Name="writeBtnRect"/>
+                <SymbolIcon Symbol="Edit"></SymbolIcon>
+            </Grid>
+        </Button>
+        <Button  
+            Click="sendBtn_Click"
+            Background="#818FB4" 
+            Width="50" Height="50" 
+            Name="sendBtn" 
+            Margin="0,0,30,30" 
+            HorizontalAlignment="Right" 
+            VerticalAlignment="Bottom"
+            Visibility="Collapsed"
+            PointerEntered="sendBtn_PointerEntered"
+            PointerExited="sendBtn_PointerExited">
+            <Button.Resources>
+                <ResourceDictionary>
+                    <ResourceDictionary.ThemeDictionaries>
+                        <ResourceDictionary x:Key="Dark">
+                            <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="Red"/>
+                            <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="Black"/>
+                        </ResourceDictionary>
+                        <ResourceDictionary x:Key="Light">
+                            <SolidColorBrush x:Key="ButtonForegroundPointerOver" Color="Red"/>
+                            <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="Black"/>
+                        </ResourceDictionary>
+                    </ResourceDictionary.ThemeDictionaries>
+                </ResourceDictionary>
+            </Button.Resources>
+            <Grid>
+                <Rectangle Height="20" Width="20" RenderTransformOrigin="0.47,0.456"/>
+                <SymbolIcon Symbol="Send"></SymbolIcon>
+            </Grid>
+        </Button>
+    </Grid>
+</Page>
