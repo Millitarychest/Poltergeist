@@ -54,6 +54,7 @@ namespace Poltergeist.Pages
         }
         // Data handling (IMAP)
 
+
         private void loadCache(string user)
         {
             try
@@ -187,7 +188,10 @@ namespace Poltergeist.Pages
                             {
                                 _msftOauthRes = await _msftOauthApp.AcquireTokenInteractive(scopes).ExecuteAsync();
                             }
-                            catch { }
+                            catch (Exception ex) 
+                            {
+                                currentWindow.logToFile(ex.ToString());
+                            }
                         }
                         var oauth2 = new SaslMechanismOAuth2(_msftOauthRes.Account.Username, _msftOauthRes.AccessToken);
                         await client.AuthenticateAsync(oauth2);
@@ -551,15 +555,23 @@ namespace Poltergeist.Pages
             _inboxIds = new List<uint>();
             var payload = e.Parameter as AccountsModel;
             curAcc = payload;
-            loadCache(payload.User);
-            await pullMail(payload);
-            if (grid.ActualWidth > 450)
+            try
             {
-                HeaderBar.Width = grid.ActualWidth - 450;
+                loadCache(payload.User);
+                await pullMail(payload);
+                if (grid.ActualWidth > 450)
+                {
+                    HeaderBar.Width = grid.ActualWidth - 450;
+                }
+                else
+                {
+                    HeaderBar.Width = 900;
+                }
             }
-            else
+            catch(Exception ex)
             {
-                HeaderBar.Width = 900;
+                var currentWindow = (Application.Current as App).m_window;
+                currentWindow.logToFile(ex.Message);
             }
             //base.OnNavigatedTo(e);
         }

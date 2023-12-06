@@ -108,6 +108,20 @@ namespace Poltergeist
 
         }
 
+        public void logToFile(string log)
+        {
+            try
+            {
+                string roaming = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+                string folderPath = Path.Combine(roaming, "Poltergeist");
+                string cachePath = Path.Combine(folderPath, "logs.log");
+                StreamWriter s = File.AppendText(cachePath);
+                s.WriteLine(log);
+                s.Close();
+            }
+            catch { }
+        }
+
         //account store
         //Publics (no passwords)
         private void storeAccountPublics() 

@@ -20,7 +20,7 @@ namespace Poltergeist.Helpers
         /// <summary>
         /// Path to the token cache
         /// </summary>
-        public static readonly string CacheFilePath = System.Reflection.Assembly.GetExecutingAssembly().Location + ".msalcache.bin3";
+        public static readonly string CacheFilePath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + ".msalcache.bin3";
 
         private static readonly object FileLock = new object();
 

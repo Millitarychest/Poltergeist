@@ -46,6 +46,6 @@ namespace Poltergeist
             m_window.Activate();
         }
 
-        internal Window m_window;
+        internal MainWindow m_window;
     }
 }
