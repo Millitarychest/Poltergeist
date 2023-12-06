@@ -9,7 +9,7 @@
   <Identity
     Name="674781f3-2b6d-4ee9-8c09-818225a9d8bc"
     Publisher="CN=Paul Lohberg"
-    Version="1.0.0.0" />
+    Version="1.0.1.0" />
 
   <Properties>
     <DisplayName>Poltergeist</DisplayName>

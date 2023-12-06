@@ -86,6 +86,13 @@ namespace Poltergeist
 
         private void setup()
         {
+            //setup paths
+            string roaming = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            string folderPath = Path.Combine(roaming, "Poltergeist");
+            if (!Directory.Exists(folderPath)) 
+            { 
+                Directory.CreateDirectory(folderPath);
+            }
 
             //inits
             _accounts = new ObservableCollection<AccountsModel>();
@@ -105,13 +112,17 @@ namespace Poltergeist
         //Publics (no passwords)
         private void storeAccountPublics() 
         {
-            string roaming = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            string folderPath = Path.Combine(roaming, "Poltergeist");
-            string cachePath = Path.Combine(folderPath, "accounts.dat");
-            using (var fs = File.Open(cachePath, FileMode.Create, FileAccess.ReadWrite))
+            try
             {
-                Serializer.Serialize(fs, _accounts);
+                string roaming = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+                string folderPath = Path.Combine(roaming, "Poltergeist");
+                string cachePath = Path.Combine(folderPath, "accounts.dat");
+                using (var fs = File.Open(cachePath, FileMode.Create, FileAccess.ReadWrite))
+                {
+                    Serializer.Serialize(fs, _accounts);
+                }
             }
+            catch { }
         }
 
         private void loadAccountPublics() 
