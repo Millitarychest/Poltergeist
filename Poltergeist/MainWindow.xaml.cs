@@ -9,6 +9,8 @@ using Poltergeist.models;
 using MailKit.Security;
 using Poltergeist.Pages;
 using System.Runtime.InteropServices;
+using Microsoft.UI;
+using Microsoft.UI.Windowing;
 
 
 // To learn more about WinUI, the WinUI project structure,
@@ -47,9 +49,18 @@ namespace Poltergeist
 
         private void uiSetup()
         {
+            LoadIcon(@"Assets/LogoGhostT.ico");
             Title = "Poltergeist";
             populateNav();
 
+        }
+
+        private void LoadIcon(string iconName)
+        {
+            IntPtr windowHandle = WinRT.Interop.WindowNative.GetWindowHandle(this);
+            WindowId windowId = Win32Interop.GetWindowIdFromWindow(windowHandle);
+            var appWindow = AppWindow.GetFromWindowId(windowId);
+            appWindow.SetIcon(iconName);
         }
 
         private void populateNav()

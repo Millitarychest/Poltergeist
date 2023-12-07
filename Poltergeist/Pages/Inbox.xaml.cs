@@ -518,6 +518,11 @@ namespace Poltergeist.Pages
         // ui handlers
         private void Frame_SizeChanged(object sender, SizeChangedEventArgs e)
         {
+            resize();
+        }
+
+        private void resize()
+        {
             if (init)
             {
                 init = false;
@@ -534,18 +539,17 @@ namespace Poltergeist.Pages
                 MessageWrite.Height = grid.ActualHeight - 20;
                 MessageWrite.MaxHeight = grid.ActualHeight - 20;
 
-            } 
+            }
             else { MessageDisplay.MaxWidth = grid.ActualWidth - 450; }
-            
+
 
             // header
             HeaderBar.Width = grid.ActualWidth - 450;
-            
+
             From_Box.Width = grid.ActualWidth - 450 - 10;
-            To_Box.Width = (grid.ActualWidth - 450)/2 - 10;
+            To_Box.Width = (grid.ActualWidth - 450) / 2 - 10;
             CC_Box.Width = (grid.ActualWidth - 450) / 2 - 10;
             Subject_Box.Width = grid.ActualWidth - 450 - 10;
-
         }
 
         protected async override void OnNavigatedTo(NavigationEventArgs e)
@@ -567,6 +571,7 @@ namespace Poltergeist.Pages
                 {
                     HeaderBar.Width = 900;
                 }
+                resize();
             }
             catch(Exception ex)
             {
