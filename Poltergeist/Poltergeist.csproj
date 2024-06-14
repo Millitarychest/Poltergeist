@@ -42,7 +42,7 @@
 
   <ItemGroup>
     <PackageReference Include="MailKit" Version="4.3.0" />
-    <PackageReference Include="Microsoft.Identity.Client" Version="4.59.1" />
+    <PackageReference Include="Microsoft.Identity.Client" Version="4.61.3" />
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2151.40">
       <Aliases>webview2</Aliases>
     </PackageReference>
