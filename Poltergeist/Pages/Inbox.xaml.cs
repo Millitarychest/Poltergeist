@@ -18,6 +18,8 @@ using System.Threading.Tasks;
 using MimeKit.Cryptography;
 using MimeKit;
 using MailKit.Net.Smtp;
+using Google.Apis.Auth.OAuth2;
+using System.Threading;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -197,7 +199,18 @@ namespace Poltergeist.Pages
                         await client.AuthenticateAsync(oauth2);
                         break;
                     case 1: //google
-                        throw new NotImplementedException();
+                        var credentials = await GoogleWebAuthorizationBroker.AuthorizeAsync(
+                            new ClientSecrets
+                            {
+                                ClientId = "650814528951-59l664qmrqb82dj74v8e6pj9657ernn9.apps.googleusercontent.com",
+                                ClientSecret = ""
+                            },
+                            new[] { "https://mail.google.com/" },
+                            "user",
+                            CancellationToken.None);
+                        var oauth2_goog = new SaslMechanismOAuth2(acc.User, credentials.Token.AccessToken);
+                        await client.AuthenticateAsync(oauth2_goog);
+                        break;
                 }
 
             }
@@ -424,11 +437,22 @@ namespace Poltergeist.Pages
                             }
                             catch { }
                         }
-                        var oauth2 = new SaslMechanismOAuth2(_msftOauthRes.Account.Username, _msftOauthRes.AccessToken);
-                        await client.AuthenticateAsync(oauth2);
+                        var oauth2_mic = new SaslMechanismOAuth2(_msftOauthRes.Account.Username, _msftOauthRes.AccessToken);
+                        await client.AuthenticateAsync(oauth2_mic);
                         break;
                     case 1: //google
-                        throw new NotImplementedException();
+                        var credentials = await GoogleWebAuthorizationBroker.AuthorizeAsync(
+                            new ClientSecrets
+                            {
+                                ClientId = "650814528951-59l664qmrqb82dj74v8e6pj9657ernn9.apps.googleusercontent.com",
+                                ClientSecret = ""
+                            },
+                            new[] {"https://mail.google.com/"},
+                            "user",
+                            CancellationToken.None);
+                        var oauth2_goog = new SaslMechanismOAuth2(acc.User, credentials.Token.AccessToken);
+                        await client.AuthenticateAsync(oauth2_goog);
+                        break;
                 }
 
             }

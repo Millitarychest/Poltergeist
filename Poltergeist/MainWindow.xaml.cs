@@ -274,8 +274,14 @@ namespace Poltergeist
             s.Children.Add(SecDropDown);
 
             var OauthCheck = new CheckBox();
-            s.Children.Add(new TextBlock { Text = "Use Oauth:" });
+            s.Children.Add(new TextBlock { Text = "Use Oauth: (Microsoft / Google)" });
             s.Children.Add(OauthCheck);
+
+            var OauthDropDown = new ComboBox();
+            OauthDropDown.Items.Add("Microsoft");
+            OauthDropDown.Items.Add("Google");
+            s.Children.Add(new TextBlock { Text = "Oauth Platform:" });
+            s.Children.Add(OauthDropDown);
 
 
             ContentDialog newMAilDialog = new ContentDialog
@@ -300,6 +306,7 @@ namespace Poltergeist
                 ac.SmtpHost = Smtphost.Text;
                 ac.mail = mail.Text;
                 ac.Oauth2 = (bool)OauthCheck.IsChecked;
+                ac.OauthPlatform = OauthDropDown.SelectedIndex;
                 ac.security = (SecureSocketOptions)SecDropDown.SelectedIndex;
 
 

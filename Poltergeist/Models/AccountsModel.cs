@@ -29,7 +29,7 @@ namespace Poltergeist.models
         public bool Oauth2 { get; set; }
 
         [ProtoMember(7)]
-        public int OauthPlatform { get; set; } // 0 - Microsoft | 2 - Google 
+        public int OauthPlatform { get; set; } // 0 - Microsoft | 1 - Google 
 
         public bool pulling { get; set; }
 
