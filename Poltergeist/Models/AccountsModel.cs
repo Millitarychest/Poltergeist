@@ -17,29 +17,30 @@ namespace Poltergeist.models
         [ProtoMember(2)]
         public int ImapPort { get; set; }
 
+        [ProtoMember(4)]
         public string Password { get; set; }
 
-        [ProtoMember(4)]
+        [ProtoMember(5)]
         public string User { get; set; }
 
-        [ProtoMember(5)]
+        [ProtoMember(6)]
         public SecureSocketOptions security { get; set; }
 
-        [ProtoMember(6)]
+        [ProtoMember(7)]
         public bool Oauth2 { get; set; }
 
-        [ProtoMember(7)]
+        [ProtoMember(8)]
         public int OauthPlatform { get; set; } // 0 - Microsoft | 1 - Google 
 
         public bool pulling { get; set; }
 
-        [ProtoMember(8)]
+        [ProtoMember(9)]
         public string SmtpHost { get; set; }
 
-        [ProtoMember(9)]
+        [ProtoMember(10)]
         public int SmtpPort { get; set; }
 
-        [ProtoMember(10)]
+        [ProtoMember(11)]
         public string mail { get; set; }
     }
 }

@@ -11,6 +11,9 @@ using Poltergeist.Pages;
 using System.Runtime.InteropServices;
 using Microsoft.UI;
 using Microsoft.UI.Windowing;
+using System.Text;
+using System.Security.Cryptography;
+using Windows.Security.Credentials;
 
 
 // To learn more about WinUI, the WinUI project structure,
@@ -110,8 +113,13 @@ namespace Poltergeist
 
             //account inti (temp)
 
-            loadAccountPublics();
-            loadAccountPrivates();
+            //TODO: Run this on first open
+            //gen_store_key();
+            LoadAccounts();
+
+
+            //loadAccountPublics();
+            //loadAccountPrivates();
 
 
             //storeAccountPublics();
@@ -133,24 +141,39 @@ namespace Poltergeist
             catch { }
         }
 
-        //account store
-        //Publics (no passwords)
-        private void storeAccountPublics() 
+        //account store logic
+        private string GetOrCreateKey()
         {
+            var vault = new PasswordVault();
             try
             {
-                string roaming = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-                string folderPath = Path.Combine(roaming, "Poltergeist");
-                string cachePath = Path.Combine(folderPath, "accounts.dat");
-                using (var fs = File.Open(cachePath, FileMode.Create, FileAccess.ReadWrite))
-                {
-                    Serializer.Serialize(fs, _accounts);
-                }
+                // Try to retrieve the existing key
+                var credential = vault.Retrieve(_appName, "Poltergeist_Cypher");
+                credential.RetrievePassword();
+                return credential.Password;
             }
-            catch { }
+            catch (Exception)
+            {
+                // Key doesn't exist, generate a new one
+                string newKey = gen_key();
+                vault.Add(new PasswordCredential(_appName, "Poltergeist_Cypher", newKey));
+                return newKey;
+            }
         }
 
-        private void loadAccountPublics() 
+        private string gen_key()
+        {
+            using (var rng = RandomNumberGenerator.Create())
+            {
+                var keyBytes = new byte[32]; // 256 bits
+                rng.GetBytes(keyBytes);
+                return Convert.ToBase64String(keyBytes);
+            }
+        }
+
+        //TODO: implement en-/decrypt of accounts using key from vault
+
+        private void StoreAccounts()
         {
             try
             {
@@ -158,68 +181,95 @@ namespace Poltergeist
                 string folderPath = Path.Combine(roaming, "Poltergeist");
                 string cachePath = Path.Combine(folderPath, "accounts.dat");
 
+                byte[] serializedData;
+
+                using (var stream = new MemoryStream())
+                {
+                    Serializer.Serialize(stream, _accounts);
+                    serializedData = stream.ToArray();
+                }
+
+
+                string encryptionKey = GetOrCreateKey();
+                byte[] encryptedData = Encrypt(serializedData, encryptionKey);
+
+                File.WriteAllBytes(cachePath, encryptedData);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error storing accounts: {ex.Message}");
+            }
+        }
+
+
+        private void LoadAccounts()
+        {
+            try
+            {
+                string roaming = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+                string folderPath = Path.Combine(roaming, "Poltergeist");
+                string cachePath = Path.Combine(folderPath, "accounts.dat");
                 if (File.Exists(cachePath))
                 {
-                    using (var fs = File.Open(cachePath, FileMode.Open, FileAccess.Read))
+                    byte[] encryptedData = File.ReadAllBytes(cachePath);
+                    string encryptionKey = GetOrCreateKey();
+                    byte[] decryptedData = Decrypt(encryptedData, encryptionKey);
+                    using (var stream = new MemoryStream(decryptedData))
                     {
-                        _accounts = Serializer.Deserialize<ObservableCollection<AccountsModel>>(fs);
+                        _accounts = Serializer.Deserialize<ObservableCollection<AccountsModel>>(stream);
                     }
-                }
-            }
-            catch { }
-        }
-
-        //privates (Passwords)
-
-        private void storeAccountPrivates() // only if Account not oauth and only on add (for edit remove old instance)
-        {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                var vault = new Windows.Security.Credentials.PasswordVault();
-                foreach (var account in _accounts)
-                {
-                    if (!account.Oauth2)
-                    {
-                        vault.Add(new Windows.Security.Credentials.PasswordCredential(_appName, account.User + ":" + account.ImapHost, account.Password));
-                    }
-                }
-            }
-            else
-            {
-                throw new NotImplementedException();
-            }
-        }
-
-        private void loadAccountPrivates()
-        {
-            if(_accounts.Count > 0)
-            {
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                {
-                    var vault = new Windows.Security.Credentials.PasswordVault();
-                    foreach(var account in _accounts)
-                    {
-                        if (!account.Oauth2)
-                        {
-                            try
-                            {
-                                var cred = vault.Retrieve(_appName, account.User + ":" + account.ImapHost);
-                                account.Password = cred.Password;
-                            }
-                            catch (Exception )
-                            {
-                            }
-                        }
-                    }
-
                 }
                 else
                 {
-                    throw new NotImplementedException();
+                    _accounts = new ObservableCollection<AccountsModel>();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error loading accounts: {ex.Message}");
+                _accounts = new ObservableCollection<AccountsModel>();
+            }
+        }
+
+        private byte[] Encrypt(byte[] plainBytes, string key)
+        {
+            using (var aes = Aes.Create())
+            {
+                aes.Key = Convert.FromBase64String(key);
+                aes.IV = new byte[16];
+
+                using (var encryptor = aes.CreateEncryptor(aes.Key, aes.IV))
+                using (var ms = new MemoryStream())
+                {
+                    using (var cs = new CryptoStream(ms, encryptor, CryptoStreamMode.Write))
+                    {
+                        cs.Write(plainBytes, 0, plainBytes.Length);
+                    }
+                    return ms.ToArray();
                 }
             }
         }
 
+        private byte[] Decrypt(byte[] cipherBytes, string key)
+        {
+            using (var aes = Aes.Create())
+            {
+                aes.Key = Convert.FromBase64String(key);
+                aes.IV = new byte[16];
+
+                using (var decryptor = aes.CreateDecryptor(aes.Key, aes.IV))
+                using (var ms = new MemoryStream(cipherBytes))
+                using (var cs = new CryptoStream(ms, decryptor, CryptoStreamMode.Read))
+                using (var resultMs = new MemoryStream())
+                {
+                    cs.CopyTo(resultMs);
+                    return resultMs.ToArray();
+                }
+            }
+        }
+
+
+        
         //dialogs
         private async void newMAilDialog()
         {
@@ -313,8 +363,9 @@ namespace Poltergeist
 
                 _accounts.Add(ac);
 
-                storeAccountPublics();
-                storeAccountPrivates();
+                //storeAccountPublics();
+                //storeAccountPrivates();
+                StoreAccounts();
 
                 uiSetup();
             }
