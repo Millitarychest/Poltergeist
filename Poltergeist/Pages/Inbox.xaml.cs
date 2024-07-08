@@ -202,8 +202,8 @@ namespace Poltergeist.Pages
                         var credentials = await GoogleWebAuthorizationBroker.AuthorizeAsync(
                             new ClientSecrets
                             {
-                                ClientId = "650814528951-59l664qmrqb82dj74v8e6pj9657ernn9.apps.googleusercontent.com",
-                                ClientSecret = ""
+                                ClientId = currentWindow.app_secrets["google_client_id"],
+                                ClientSecret = currentWindow.app_secrets["google_client_secret"]
                             },
                             new[] { "https://mail.google.com/" },
                             "user",
@@ -409,6 +409,7 @@ namespace Poltergeist.Pages
         
         private async void sendMail(AccountsModel acc)
         {
+            var currentWindow = (Application.Current as App).m_window;
             var client = new SmtpClient();
 
             await client.ConnectAsync(acc.SmtpHost, acc.SmtpPort, /*acc.security*/ SecureSocketOptions.Auto);
@@ -429,7 +430,7 @@ namespace Poltergeist.Pages
                         {
                             var options = new PublicClientApplicationOptions
                             {
-                                ClientId = "8fa67a38-84e5-4be6-a0d7-818495639d0a",
+                                ClientId = currentWindow.app_secrets["msft_client_id"],
                                 RedirectUri = "https://login.microsoftonline.com/common/oauth2/nativeclient",
 
                             };
@@ -461,8 +462,8 @@ namespace Poltergeist.Pages
                         var credentials = await GoogleWebAuthorizationBroker.AuthorizeAsync(
                             new ClientSecrets
                             {
-                                ClientId = "650814528951-59l664qmrqb82dj74v8e6pj9657ernn9.apps.googleusercontent.com",
-                                ClientSecret = ""
+                                ClientId = currentWindow.app_secrets["google_client_id"],
+                                ClientSecret = currentWindow.app_secrets["google_client_secret"]
                             },
                             new[] {"https://mail.google.com/"},
                             "user",
