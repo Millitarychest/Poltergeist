@@ -14,8 +14,7 @@ using Microsoft.UI.Windowing;
 using System.Text;
 using System.Security.Cryptography;
 using Windows.Security.Credentials;
-
-
+using Microsoft.Extensions.Configuration;
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
 
@@ -31,7 +30,7 @@ namespace Poltergeist
         //accounts (Per profile if i do those)
         private ObservableCollection<AccountsModel> _accounts { get; set; }
         private string _appName = "Poltergeist";
-
+        public IConfigurationRoot app_secrets; 
 
         //internal states
 
@@ -100,6 +99,9 @@ namespace Poltergeist
 
         private void setup()
         {
+            //setup secrets
+            app_secrets = new ConfigurationBuilder().AddUserSecrets<MainWindow>().Build();
+            
             //setup paths
             string roaming = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
             string folderPath = Path.Combine(roaming, "Poltergeist");

@@ -167,7 +167,7 @@ namespace Poltergeist.Pages
                         {
                             var options = new PublicClientApplicationOptions
                             {
-                                ClientId = "8fa67a38-84e5-4be6-a0d7-818495639d0a",
+                                ClientId = currentWindow.app_secrets["msft_client_id"],
                                 RedirectUri = "https://login.microsoftonline.com/common/oauth2/nativeclient",
                                 
                             };
@@ -333,20 +333,37 @@ namespace Poltergeist.Pages
                     Subject_Box.Text = openedMail.Subject; 
                     if (openedMail.IsHtml)
                     {
-                        SwapToWebView();
-                        await MessageWebDisplay.EnsureCoreWebView2Async();
-                        string darkModeStyles = @"
-                                        <style>
-                                            body {
-                                                background-color: #363062;
-                                                color: #FFFFFF;
-                                            }
-                                            /* Add more styles as needed */
-                                        </style>
-                                    ";
-                        MessageWebDisplay.NavigateToString(darkModeStyles + openedMail.HtmlBody);
-                        MessageWebDisplay.Width = grid.ActualWidth - 450;
-                        MessageWebDisplay.Height = grid.ActualHeight - 20;
+                        try
+                        {
+                            SwapToWebView();
+                            await MessageWebDisplay.EnsureCoreWebView2Async();
+                            string darkModeStyles = @"
+                                                        <style>
+                                                            body {
+                                                                background-color: #363062;
+                                                                color: #FFFFFF;
+                                                            }
+                                                            /* Add more styles as needed */
+                                                        </style>
+                                                    ";
+                            MessageWebDisplay.NavigateToString(darkModeStyles + openedMail.HtmlBody);
+                            MessageWebDisplay.Width = grid.ActualWidth - 450;
+                            MessageWebDisplay.Height = grid.ActualHeight - 20;
+                        }
+                        catch (Exception exception)
+                        {
+                            var currentWindow = (Application.Current as App).m_window;
+                            currentWindow.logToFile(exception.ToString());
+
+                            // Display error to user
+                            MessageDisplay.Visibility = Visibility.Visible;
+                            MessageWebDisplay.Visibility = Visibility.Collapsed;
+                            Paragraph paragraph = new Paragraph();
+                            Run run = new Run();
+                            run.Text = "Error loading HTML content: " + exception.Message;
+                            paragraph.Inlines.Add(run);
+                            MessageDisplay.Blocks.Add(paragraph);
+                        }
                     }
                     else
                     {

@@ -6,6 +6,7 @@
     xmlns:models="using:Poltergeist.models"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+    xmlns:controls="using:Microsoft.UI.Xaml.Controls"
     mc:Ignorable="d"
     >
     <NavigationView PaneDisplayMode="LeftCompact" IsBackButtonVisible="Collapsed" Background="#18122B" x:Name="NavBar" SelectionChanged="NavBar_SelectionChanged">
