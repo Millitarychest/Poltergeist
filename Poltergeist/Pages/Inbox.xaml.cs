@@ -65,7 +65,7 @@ namespace Poltergeist.Pages
                 string folderPath = Path.Combine(roaming, "Poltergeist");
                 string cachePath = Path.Combine(folderPath, user + "_cache.dat");
                 string idCachePath = Path.Combine(folderPath, user + "_cache.ids");
-                string timePath = Path.Combine(folderPath, user + "lastUpdate");
+                string timePath = Path.Combine(folderPath, user + ".lastUpdate");
                 List<MailModel> cachedMessages = new List<MailModel>();
 
                 // Deserialize MimeMessages from the local cache file
@@ -88,9 +88,10 @@ namespace Poltergeist.Pages
                 _inbox = new ObservableCollection<MailModel>(cachedMessages);
                 
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                
+                var currentWindow = (Application.Current as App).m_window;
+                currentWindow.logToFile("Failed to load cache:" + ex.ToString());
             }
         }
 
@@ -107,7 +108,7 @@ namespace Poltergeist.Pages
                 }
                 string cachePath = Path.Combine(folderPath, user + "_cache.dat");
                 string idCachePath = Path.Combine(folderPath, user + "_cache.ids");
-                string timePath = Path.Combine(folderPath, user + "lastUpdate");
+                string timePath = Path.Combine(folderPath, user + ".lastUpdate");
 
                 using (var fs = File.Open(cachePath, FileMode.Create, FileAccess.ReadWrite))
                 {
@@ -138,7 +139,12 @@ namespace Poltergeist.Pages
                     Serializer.Serialize(fs, _inbox.ElementAt(0).Time);
                 }
             }
-            catch (Exception) { }
+            catch (Exception ex) 
+            {
+
+                var currentWindow = (Application.Current as App).m_window;
+                currentWindow.logToFile("Failed to store Cache:" + ex.ToString());
+            }
             
         }
 
@@ -248,6 +254,7 @@ namespace Poltergeist.Pages
                 mail.Content = msg.TextBody ?? msg.HtmlBody;
                 mail.Time = msg.Date.DateTime;
                 mail.Date = msg.Date.ToString().Substring(0, 10);
+                mail.uid = uid.Id;
 
                 mail.HtmlBody = msg.HtmlBody;
 
@@ -320,6 +327,88 @@ namespace Poltergeist.Pages
             }
         }
 
+        private async void markRead(UniqueId uid)
+        {
+            var currentWindow = (Application.Current as App).m_window;
+            var client = new ImapClient();
+
+            await client.ConnectAsync(curAcc.ImapHost, curAcc.ImapPort, curAcc.security);
+
+            if (curAcc.Oauth2)
+            {
+                switch (curAcc.OauthPlatform)
+                {
+                    case 0: //msft
+                        var scopes = new string[] {
+                            "email",
+                            "offline_access",
+                            "https://outlook.office.com/IMAP.AccessAsUser.All", // Only needed for IMAP
+                            //"https://outlook.office.com/POP.AccessAsUser.All",  // Only needed for POP
+                            "https://outlook.office.com/SMTP.Send", // Only needed for SMTP
+                        };
+                        if (_msftOauthApp == default(IPublicClientApplication))
+                        {
+                            var options = new PublicClientApplicationOptions
+                            {
+                                ClientId = currentWindow.app_secrets["msft_client_id"],
+                                RedirectUri = "https://login.microsoftonline.com/common/oauth2/nativeclient",
+
+                            };
+
+                            _msftOauthApp = PublicClientApplicationBuilder
+                                .CreateWithApplicationOptions(options)
+                                .Build();
+                            Helpers.TokenCacheHelper.EnableSerialization(_msftOauthApp.UserTokenCache);
+
+                            _msftOauthAcc = (await _msftOauthApp.GetAccountsAsync()).FirstOrDefault();
+                        }
+                        try
+                        {
+                            _msftOauthRes = await _msftOauthApp.AcquireTokenSilent(scopes, _msftOauthAcc)
+                                              .ExecuteAsync();
+                        }
+                        catch (MsalUiRequiredException)
+                        {
+                            try
+                            {
+                                _msftOauthRes = await _msftOauthApp.AcquireTokenInteractive(scopes).ExecuteAsync();
+                            }
+                            catch (Exception ex)
+                            {
+                                currentWindow.logToFile(ex.ToString());
+                            }
+                        }
+                        var oauth2 = new SaslMechanismOAuth2(_msftOauthRes.Account.Username, _msftOauthRes.AccessToken);
+                        await client.AuthenticateAsync(oauth2);
+                        break;
+                    case 1: //google
+                        var credentials = await GoogleWebAuthorizationBroker.AuthorizeAsync(
+                            new ClientSecrets
+                            {
+                                ClientId = currentWindow.app_secrets["google_client_id"],
+                                ClientSecret = currentWindow.app_secrets["google_client_secret"]
+                            },
+                            new[] { "https://mail.google.com/" },
+                            "user",
+                            CancellationToken.None);
+                        var oauth2_goog = new SaslMechanismOAuth2(curAcc.User, credentials.Token.AccessToken);
+                        await client.AuthenticateAsync(oauth2_goog);
+                        break;
+                }
+
+            }
+            else
+            {
+                await client.AuthenticateAsync(curAcc.User, curAcc.Password);
+            }
+
+
+            await client.Inbox.OpenAsync(FolderAccess.ReadWrite);
+            client.Inbox.AddFlags(uid, MessageFlags.Seen, true);
+            await client.DisconnectAsync(true);
+
+        }
+
         private async void mailOpened(object sender, RoutedEventArgs e)
         {
             if (sender is Button clButton)
@@ -330,7 +419,9 @@ namespace Poltergeist.Pages
                     From_Box.Text = openedMail.From;
                     To_Box.Text = openedMail.To;
                     CC_Box.Text = openedMail.cc;
-                    Subject_Box.Text = openedMail.Subject; 
+                    Subject_Box.Text = openedMail.Subject;
+                    UniqueId m_uid = new UniqueId(openedMail.uid);
+                    markRead(m_uid);
                     if (openedMail.IsHtml)
                     {
                         try
@@ -423,7 +514,6 @@ namespace Poltergeist.Pages
                             "email",
                             "offline_access",
                             "https://outlook.office.com/IMAP.AccessAsUser.All", // Only needed for IMAP
-                            //"https://outlook.office.com/POP.AccessAsUser.All",  // Only needed for POP
                             "https://outlook.office.com/SMTP.Send", // Only needed for SMTP
                         };
                         if (_msftOauthApp == default(IPublicClientApplication))

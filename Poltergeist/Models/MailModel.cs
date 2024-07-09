@@ -1,10 +1,5 @@
-﻿using MimeKit;
-using ProtoBuf;
+﻿using ProtoBuf;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Poltergeist.models
 {
@@ -40,5 +35,8 @@ namespace Poltergeist.models
 
         [ProtoMember(10)]
         public bool IsHtml { get; set; }
+
+        [ProtoMember(11)]
+        public uint uid { get; set; }
     }
 }

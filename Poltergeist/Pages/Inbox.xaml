@@ -12,6 +12,7 @@
 
     <Grid Background="#393053" x:Name="grid" SizeChanged="Frame_SizeChanged">
         <Grid.Resources>
+            <!--Template for Mails in Inbox-->
             <DataTemplate x:Key="MailPreviewTemplate" x:DataType="models:MailModel">
                 <Button Click="mailOpened" DataContext="{x:Bind}" >
                     <StackPanel Padding="12" BorderThickness="1" Background="#393053" BorderBrush="White" Width="350" MaxHeight="100" x:Name="mailPanel">
@@ -25,16 +26,19 @@
         </Grid.Resources>
         <StackPanel Orientation="Horizontal">
             <TextBlock x:Name="errorOut"></TextBlock>
+            <!--Inbox List-->
             <ScrollViewer Padding="12" Width="400" HorizontalAlignment="Left">
                 <ItemsRepeater
                             ItemsSource="{x:Bind _inbox, Mode=OneWay}"
                             ItemTemplate="{StaticResource MailPreviewTemplate}">
                 </ItemsRepeater>
             </ScrollViewer>
+            <!--Mail Content-->
             <Frame Padding="12" >
                 <StackPanel Orientation="Vertical">
                     <ScrollViewer HorizontalAlignment="Stretch">
                         <StackPanel>
+                            <!--Mail Meta Data (to from etc)-->
                             <StackPanel Background="#092635" x:Name="HeaderBar" Width="900">
                                 <StackPanel  Orientation="Horizontal">
                                     <TextBlock x:Name="From_label" Margin="10,10,0,0" Padding="0,0,10,0" VerticalAlignment="Center">From:</TextBlock>
@@ -63,6 +67,8 @@
                                     <TextBox Width="800" Background="Transparent" x:Name="Subject_Box" IsReadOnly="True"></TextBox>
                                 </StackPanel>
                             </StackPanel>
+                            <!--Attachments-->
+                            <!--Mail Bodys-->
                             <RichTextBlock
                                         HorizontalAlignment="Stretch"
                                         MinWidth="500"
