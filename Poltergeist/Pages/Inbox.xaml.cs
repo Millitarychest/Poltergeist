@@ -148,9 +148,8 @@ namespace Poltergeist.Pages
             
         }
 
-        public async Task pullMail(AccountsModel acc)
+        private async Task<ImapClient> authenticateImapClient(AccountsModel acc)
         {
-            if (acc.pulling) { return; }
             var currentWindow = (Application.Current as App).m_window;
 
             var client = new ImapClient();
@@ -175,7 +174,7 @@ namespace Poltergeist.Pages
                             {
                                 ClientId = currentWindow.app_secrets["msft_client_id"],
                                 RedirectUri = "https://login.microsoftonline.com/common/oauth2/nativeclient",
-                                
+
                             };
 
                             _msftOauthApp = PublicClientApplicationBuilder
@@ -196,7 +195,7 @@ namespace Poltergeist.Pages
                             {
                                 _msftOauthRes = await _msftOauthApp.AcquireTokenInteractive(scopes).ExecuteAsync();
                             }
-                            catch (Exception ex) 
+                            catch (Exception ex)
                             {
                                 currentWindow.logToFile(ex.ToString());
                             }
@@ -224,7 +223,87 @@ namespace Poltergeist.Pages
             {
                 await client.AuthenticateAsync(acc.User, acc.Password);
             }
+            return client;
+        }
 
+        public async Task<SmtpClient> authenticateSmtpClient(AccountsModel acc)
+        {
+            var currentWindow = (Application.Current as App).m_window;
+            var client = new SmtpClient();
+
+            await client.ConnectAsync(acc.SmtpHost, acc.SmtpPort, /*acc.security*/ SecureSocketOptions.Auto);
+
+            if (acc.Oauth2)
+            {
+                switch (acc.OauthPlatform)
+                {
+                    case 0: //msft
+                        var scopes = new string[] {
+                            "email",
+                            "offline_access",
+                            "https://outlook.office.com/IMAP.AccessAsUser.All", // Only needed for IMAP
+                            "https://outlook.office.com/SMTP.Send", // Only needed for SMTP
+                        };
+                        if (_msftOauthApp == default(IPublicClientApplication))
+                        {
+                            var options = new PublicClientApplicationOptions
+                            {
+                                ClientId = currentWindow.app_secrets["msft_client_id"],
+                                RedirectUri = "https://login.microsoftonline.com/common/oauth2/nativeclient",
+
+                            };
+
+                            _msftOauthApp = PublicClientApplicationBuilder
+                                .CreateWithApplicationOptions(options)
+                                .Build();
+                            Helpers.TokenCacheHelper.EnableSerialization(_msftOauthApp.UserTokenCache);
+
+                            _msftOauthAcc = (await _msftOauthApp.GetAccountsAsync()).FirstOrDefault();
+                        }
+                        try
+                        {
+                            _msftOauthRes = await _msftOauthApp.AcquireTokenSilent(scopes, _msftOauthAcc)
+                                              .ExecuteAsync();
+                        }
+                        catch (MsalUiRequiredException)
+                        {
+                            try
+                            {
+                                _msftOauthRes = await _msftOauthApp.AcquireTokenInteractive(scopes).ExecuteAsync();
+                            }
+                            catch { }
+                        }
+                        var oauth2_mic = new SaslMechanismOAuth2(_msftOauthRes.Account.Username, _msftOauthRes.AccessToken);
+                        await client.AuthenticateAsync(oauth2_mic);
+                        break;
+                    case 1: //google
+                        var credentials = await GoogleWebAuthorizationBroker.AuthorizeAsync(
+                            new ClientSecrets
+                            {
+                                ClientId = currentWindow.app_secrets["google_client_id"],
+                                ClientSecret = currentWindow.app_secrets["google_client_secret"]
+                            },
+                            new[] { "https://mail.google.com/" },
+                            "user",
+                            CancellationToken.None);
+                        var oauth2_goog = new SaslMechanismOAuth2(acc.User, credentials.Token.AccessToken);
+                        await client.AuthenticateAsync(oauth2_goog);
+                        break;
+                }
+
+            }
+            else
+            {
+                await client.AuthenticateAsync(acc.User, acc.Password);
+            }
+            return client;
+        }
+
+        public async Task pullMail(AccountsModel acc)
+        {
+            if (acc.pulling) { return; }
+            var currentWindow = (Application.Current as App).m_window;
+            var client = await authenticateImapClient(acc);
 
             await client.Inbox.OpenAsync(FolderAccess.ReadOnly);
             IList<UniqueId> revUids;
@@ -329,85 +408,15 @@ namespace Poltergeist.Pages
 
         private async void markRead(UniqueId uid)
         {
-            var currentWindow = (Application.Current as App).m_window;
-            var client = new ImapClient();
-
-            await client.ConnectAsync(curAcc.ImapHost, curAcc.ImapPort, curAcc.security);
-
-            if (curAcc.Oauth2)
-            {
-                switch (curAcc.OauthPlatform)
-                {
-                    case 0: //msft
-                        var scopes = new string[] {
-                            "email",
-                            "offline_access",
-                            "https://outlook.office.com/IMAP.AccessAsUser.All", // Only needed for IMAP
-                            //"https://outlook.office.com/POP.AccessAsUser.All",  // Only needed for POP
-                            "https://outlook.office.com/SMTP.Send", // Only needed for SMTP
-                        };
-                        if (_msftOauthApp == default(IPublicClientApplication))
-                        {
-                            var options = new PublicClientApplicationOptions
-                            {
-                                ClientId = currentWindow.app_secrets["msft_client_id"],
-                                RedirectUri = "https://login.microsoftonline.com/common/oauth2/nativeclient",
-
-                            };
-
-                            _msftOauthApp = PublicClientApplicationBuilder
-                                .CreateWithApplicationOptions(options)
-                                .Build();
-                            Helpers.TokenCacheHelper.EnableSerialization(_msftOauthApp.UserTokenCache);
-
-                            _msftOauthAcc = (await _msftOauthApp.GetAccountsAsync()).FirstOrDefault();
-                        }
-                        try
-                        {
-                            _msftOauthRes = await _msftOauthApp.AcquireTokenSilent(scopes, _msftOauthAcc)
-                                              .ExecuteAsync();
-                        }
-                        catch (MsalUiRequiredException)
-                        {
-                            try
-                            {
-                                _msftOauthRes = await _msftOauthApp.AcquireTokenInteractive(scopes).ExecuteAsync();
-                            }
-                            catch (Exception ex)
-                            {
-                                currentWindow.logToFile(ex.ToString());
-                            }
-                        }
-                        var oauth2 = new SaslMechanismOAuth2(_msftOauthRes.Account.Username, _msftOauthRes.AccessToken);
-                        await client.AuthenticateAsync(oauth2);
-                        break;
-                    case 1: //google
-                        var credentials = await GoogleWebAuthorizationBroker.AuthorizeAsync(
-                            new ClientSecrets
-                            {
-                                ClientId = currentWindow.app_secrets["google_client_id"],
-                                ClientSecret = currentWindow.app_secrets["google_client_secret"]
-                            },
-                            new[] { "https://mail.google.com/" },
-                            "user",
-                            CancellationToken.None);
-                        var oauth2_goog = new SaslMechanismOAuth2(curAcc.User, credentials.Token.AccessToken);
-                        await client.AuthenticateAsync(oauth2_goog);
-                        break;
-                }
-
-            }
-            else
-            {
-                await client.AuthenticateAsync(curAcc.User, curAcc.Password);
-            }
-
+            var client = await authenticateImapClient(curAcc);
 
             await client.Inbox.OpenAsync(FolderAccess.ReadWrite);
             client.Inbox.AddFlags(uid, MessageFlags.Seen, true);
             await client.DisconnectAsync(true);
 
         }
+
+        private void loadAttachment() { } //not implemented
 
         private async void mailOpened(object sender, RoutedEventArgs e)
         {
@@ -500,75 +509,7 @@ namespace Poltergeist.Pages
         
         private async void sendMail(AccountsModel acc)
         {
-            var currentWindow = (Application.Current as App).m_window;
-            var client = new SmtpClient();
-
-            await client.ConnectAsync(acc.SmtpHost, acc.SmtpPort, /*acc.security*/ SecureSocketOptions.Auto);
-
-            if (acc.Oauth2)
-            {
-                switch (acc.OauthPlatform)
-                {
-                    case 0: //msft
-                        var scopes = new string[] {
-                            "email",
-                            "offline_access",
-                            "https://outlook.office.com/IMAP.AccessAsUser.All", // Only needed for IMAP
-                            "https://outlook.office.com/SMTP.Send", // Only needed for SMTP
-                        };
-                        if (_msftOauthApp == default(IPublicClientApplication))
-                        {
-                            var options = new PublicClientApplicationOptions
-                            {
-                                ClientId = currentWindow.app_secrets["msft_client_id"],
-                                RedirectUri = "https://login.microsoftonline.com/common/oauth2/nativeclient",
-
-                            };
-
-                            _msftOauthApp = PublicClientApplicationBuilder
-                                .CreateWithApplicationOptions(options)
-                                .Build();
-                            Helpers.TokenCacheHelper.EnableSerialization(_msftOauthApp.UserTokenCache);
-
-                            _msftOauthAcc = (await _msftOauthApp.GetAccountsAsync()).FirstOrDefault();
-                        }
-                        try
-                        {
-                            _msftOauthRes = await _msftOauthApp.AcquireTokenSilent(scopes, _msftOauthAcc)
-                                              .ExecuteAsync();
-                        }
-                        catch (MsalUiRequiredException)
-                        {
-                            try
-                            {
-                                _msftOauthRes = await _msftOauthApp.AcquireTokenInteractive(scopes).ExecuteAsync();
-                            }
-                            catch { }
-                        }
-                        var oauth2_mic = new SaslMechanismOAuth2(_msftOauthRes.Account.Username, _msftOauthRes.AccessToken);
-                        await client.AuthenticateAsync(oauth2_mic);
-                        break;
-                    case 1: //google
-                        var credentials = await GoogleWebAuthorizationBroker.AuthorizeAsync(
-                            new ClientSecrets
-                            {
-                                ClientId = currentWindow.app_secrets["google_client_id"],
-                                ClientSecret = currentWindow.app_secrets["google_client_secret"]
-                            },
-                            new[] {"https://mail.google.com/"},
-                            "user",
-                            CancellationToken.None);
-                        var oauth2_goog = new SaslMechanismOAuth2(acc.User, credentials.Token.AccessToken);
-                        await client.AuthenticateAsync(oauth2_goog);
-                        break;
-                }
-
-            }
-            else
-            {
-                await client.AuthenticateAsync(acc.User, acc.Password);
-            }
-
+            var client = await authenticateSmtpClient(acc);
             await client.SendAsync(buildMsg());
             client.Disconnect(true);
         }
